@@ -1,7 +1,7 @@
 import asyncio
 from enum import Enum
 from state_manager import has_files, MODEL_DIR, TRAINING_DIR
-
+import json
 
 class DeviceState(Enum):
     MISSING_DATA = "missing training data"
@@ -39,12 +39,14 @@ class DeviceController:
 
     async def _notify_state_change(self):
         try:
-            await self.ws.send_json({
+            await self.ws.send(json.dumps({ #TODO fix this
                 "type": "update_status",
                 "payload": {
+                    "name": self.config["name"],
+                    "id": self.config["id"],
                     "status": self.config["status"]
                 }
-            })
+            }))
         except Exception as e:
             print("Failed to notify server:", e)
 
@@ -78,10 +80,14 @@ class DeviceController:
             print("Training finished")
 
             # notify server
-            await self.ws.send_json({
+            await self.ws.send(json.dumps({
                 "type": "training_complete",
-                "payload": self.config
-            })
+                "payload": {
+                    "name": self.config["name"],
+                    "id": self.config["id"],
+                    "status": self.config["status"]
+                }
+            }))
 
             await self.set_state(DeviceState.IDLE)
 
