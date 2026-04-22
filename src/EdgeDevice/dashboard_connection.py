@@ -3,7 +3,7 @@ import websockets
 import json
 import aiohttp
 from pathlib import Path
-
+from file_manager import clear_old_files
 
 URI = "ws://192.168.1.2:8000/ws" #TODO edit during setup
 
@@ -19,8 +19,8 @@ def load_config():
 def save_config(config):
     CONFIG_PATH.write_text(json.dumps(config, indent=2))
 
-async def download_file(url, file_id, bucket, ws, config):
-    path = DATA_DIR / bucket
+async def download_file(url, file_id, file_type, ws, config):
+    path = DATA_DIR / file_type
     path.mkdir(parents=True, exist_ok=True)
     file_path = path / file_id
     try:
@@ -31,12 +31,13 @@ async def download_file(url, file_id, bucket, ws, config):
                     async for chunk in resp.content.iter_chunked(1024 * 1024):
                         f.write(chunk)
         print(f"Download complete: {file_path}")
+        await clear_old_files(path, file_id)
         # notify server
         await ws.send(json.dumps({
             "type": "download_complete",
             "payload": {
                 "file_id": file_id,
-                "bucket": bucket,
+                "type": file_type,
                 "id": config["id"]
             }
         }))
@@ -63,9 +64,9 @@ async def receiver(ws, config, controller):
                 payload = msg.get("payload", {})
                 url = payload.get("url")
                 file_id = payload.get("file_id")
-                bucket = payload.get("bucket", "training_data")
+                file_type = payload.get("type") #TODO get("file_type", "training_data")?
                 if url and file_id:
-                    asyncio.create_task(download_file(url, file_id, bucket, ws, config))
+                    asyncio.create_task(download_file(url, file_id, file_type, ws, config))
                 else:
                     print("Invalid download_file message")
 
