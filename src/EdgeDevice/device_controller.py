@@ -1,5 +1,6 @@
 import asyncio
 from enum import Enum
+from src.EdgeDevice.dashboard_connection import send_results
 from state_manager import has_files, MODEL_DIR, TRAINING_DIR
 import json
 
@@ -79,7 +80,7 @@ class DeviceController:
 
             print("Training finished")
 
-            # notify server
+            await send_results(self.config["id"])
             await self.ws.send(json.dumps({
                 "type": "training_complete",
                 "payload": {

@@ -4,22 +4,41 @@ import json
 import aiohttp
 from pathlib import Path
 from file_manager import clear_old_files
+import httpx
+import aiofiles
+import yaml
 
-URI = "ws://192.168.1.2:8000/ws" #TODO edit during setup
-
-CONFIG_PATH = Path("device.json")
+CONFIG_PATH = Path("config.yaml")
+DEVICE_PATH = Path("device.json")
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 def load_config():
     if CONFIG_PATH.exists():
-        return json.load(open(CONFIG_PATH))
-    return {"name": "Device X", "id": None, "status": "idle"}
+        with open(CONFIG_PATH, "r") as f:
+            return yaml.safe_load(f)
+    raise FileNotFoundError("config.yaml not found")
 
-def save_config(config):
-    CONFIG_PATH.write_text(json.dumps(config, indent=2))
+yaml_config = load_config()
+IP = yaml_config["ip"]
+PORT = yaml_config["port"]
 
-async def download_file(url, file_id, file_type, ws, config):
+URL = f"{IP}:{PORT}"
+URI = f"ws://{URL}/ws"
+
+
+def load_device_info():
+    if DEVICE_PATH.exists():
+        return json.load(open(DEVICE_PATH))
+    name = yaml_config["name"]
+    return {"name": name, "id": None, "status": "idle"}
+
+
+def save_device_info(device_info):
+    DEVICE_PATH.write_text(json.dumps(device_info, indent=2))
+
+
+async def download_file(url, file_id, file_type, ws, device_info):
     path = DATA_DIR / file_type
     path.mkdir(parents=True, exist_ok=True)
     file_path = path / file_id
@@ -38,15 +57,28 @@ async def download_file(url, file_id, file_type, ws, config):
             "payload": {
                 "file_id": file_id,
                 "type": file_type,
-                "id": config["id"]
+                "id": device_info["id"]
             }
         }))
     except Exception as e:
         print("Download failed:", e)
 
 
+async def send_results(device_id: int):
+    url = f"http://{URL}/upload/results/{device_id}"
+    path = DATA_DIR / "model" / "model.pth" # TODO get real path
+
+    async with aiofiles.open(path, "rb") as f:
+        content = await f.read()
+    files = {"file": (path.name, content)}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, files=files)
+
+    print(f"response: {response.status_code}")
+
+
 # Handles ALL incoming messages from server
-async def receiver(ws, config, controller):
+async def receiver(ws, device_info, controller):
     while True:
         try:
             raw = await ws.recv()
@@ -57,7 +89,7 @@ async def receiver(ws, config, controller):
             if msg_type == "get_status":
                 await ws.send(json.dumps({
                     "type": "update_status",
-                    "payload": config
+                    "payload": device_info
                 }))
 
             elif msg_type == "download_file":
@@ -66,7 +98,7 @@ async def receiver(ws, config, controller):
                 file_id = payload.get("file_id")
                 file_type = payload.get("type") #TODO get("file_type", "training_data")?
                 if url and file_id:
-                    asyncio.create_task(download_file(url, file_id, file_type, ws, config))
+                    asyncio.create_task(download_file(url, file_id, file_type, ws, device_info))
                 else:
                     print("Invalid download_file message")
 
@@ -93,17 +125,17 @@ async def receiver(ws, config, controller):
 
 
 # Sends heartbeat periodically
-async def heartbeat(ws, config):
+async def heartbeat(ws, device_info):
     while True:
         try:
-            if not config.get("id"):
+            if not device_info.get("id"):
                 print("No device ID, skipping heartbeat")
                 await asyncio.sleep(5)
                 continue
 
             await ws.send(json.dumps({
                 "type": "heartbeat",
-                "payload": {"id": config["id"]}
+                "payload": {"id": device_info["id"]}
             }))
             await asyncio.sleep(10) #TODO Consider extending the timer
 
@@ -116,22 +148,22 @@ async def main_websocket():
     while True:  # auto-reconnect loop
         try:
             async with websockets.connect(URI) as ws:
-                config = load_config()
+                device_info = load_device_info()
 
                 # Register device
                 await ws.send(json.dumps({
                     "type": "register",
-                    "payload": config
+                    "payload": device_info
                 }))
                 response = json.loads(await ws.recv())
                 if response.get("type") == "register_ack":
-                    config["id"] = response["payload"]["id"]
-                    save_config(config)
-                    print("Registered with ID:", config["id"])
+                    device_info["id"] = response["payload"]["id"]
+                    save_device_info(device_info)
+                    print("Registered with ID:", device_info["id"])
 
                     from device_controller import DeviceController
 
-                    controller = DeviceController(ws, config)
+                    controller = DeviceController(ws, device_info)
                     await controller.initialize()
                 else:
                     print("Registration failed:", response)
@@ -139,8 +171,8 @@ async def main_websocket():
 
                 # Run both loops concurrently
                 await asyncio.gather(
-                    receiver(ws, config, controller),
-                    heartbeat(ws, config)
+                    receiver(ws, device_info, controller),
+                    heartbeat(ws, device_info)
                 )
 
         except Exception as e:
@@ -148,5 +180,5 @@ async def main_websocket():
             await asyncio.sleep(5) #TODO this timer needs to change later
 
 
-if __name__ == "__main__":
-    asyncio.run(main_websocket())
+# if __name__ == "__main__":
+#     asyncio.run(main_websocket())

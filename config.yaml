@@ -1,0 +1,8 @@
+---
+# Config file for the client.
+#Ip and port of the server.
+ip: "192.168.1.2"
+port: 8000
+
+# If there is no device.json, use this name for the device
+name: "Unnamed device"
