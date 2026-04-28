@@ -8,3 +8,4 @@ __pycache__/
 # Device runtime data
 data/
 device.json
+config.yaml

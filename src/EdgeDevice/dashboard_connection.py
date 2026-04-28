@@ -46,9 +46,10 @@ async def download_file(url, file_id, file_type, ws, device_info):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as resp:
                 resp.raise_for_status()
-                with open(file_path, "wb") as f:
+                async with aiofiles.open(file_path, "wb") as f:
                     async for chunk in resp.content.iter_chunked(1024 * 1024):
                         f.write(chunk)
+
         print(f"Download complete: {file_path}")
         await clear_old_files(path, file_id)
         # notify server
