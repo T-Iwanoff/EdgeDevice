@@ -48,10 +48,13 @@ async def download_file(url, file_id, file_type, ws, device_info):
                 resp.raise_for_status()
                 async with aiofiles.open(file_path, "wb") as f:
                     async for chunk in resp.content.iter_chunked(1024 * 1024):
-                        f.write(chunk)
+                        await f.write(chunk)
 
         print(f"Download complete: {file_path}")
-        await clear_old_files(path, file_id)
+        if file_type == "program":
+            file_path.replace(DATA_DIR / "program" / "trainer.py")
+        else:
+            await clear_old_files(path, file_id)
         # notify server
         await ws.send(json.dumps({
             "type": "download_complete",
