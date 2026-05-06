@@ -4,6 +4,7 @@ from pathlib import Path
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 MODEL_DIR = DATA_DIR / "model"
 TRAINING_DIR = DATA_DIR / "training_data"
+PROGRAM_DIR = DATA_DIR / "program"
 
 def has_files(path: Path) -> bool:
     """
