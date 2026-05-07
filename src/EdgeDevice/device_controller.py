@@ -93,7 +93,7 @@ class DeviceController:
             print("Failed to notify server:", e)
 
     async def handle_train_command(self):
-        if not self.device_info["status"] == DeviceStatus.IDLE:
+        if not self.device_info["status"] == DeviceStatus.IDLE.value:
             return  #TODO return why it wont start training (tell server its current status?)
         await self.start_training()
 
