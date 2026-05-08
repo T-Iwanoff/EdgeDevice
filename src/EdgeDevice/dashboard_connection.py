@@ -3,7 +3,7 @@ import websockets
 import json
 import aiohttp
 from pathlib import Path
-from file_manager import clear_old_files
+from src.EdgeDevice.file_manager import clear_old_files
 import httpx
 import aiofiles
 import yaml
@@ -144,7 +144,7 @@ async def main_websocket():
     while True:  # auto-reconnect loop
         try:
             async with websockets.connect(URI) as ws:
-                from device_controller import DeviceController
+                from src.EdgeDevice.device_controller import DeviceController
                 controller = DeviceController(ws, )
                 await controller.initialize(yaml_config["name"])
                 device_info = controller.device_info

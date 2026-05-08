@@ -1,8 +1,7 @@
 import asyncio
 from enum import Enum
-from dashboard_connection import send_results
-from file_manager import clear_old_files
-from file_manager import has_files, MODEL_DIR, TRAINING_DIR, PROGRAM_DIR, DEVICE_PATH
+from src.EdgeDevice.dashboard_connection import send_results
+from src.EdgeDevice.file_manager import clear_old_files, has_files, MODEL_DIR, TRAINING_DIR, PROGRAM_DIR, DEVICE_PATH
 import json
 import importlib
 
