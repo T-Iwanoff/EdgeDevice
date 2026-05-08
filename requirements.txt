@@ -28,3 +28,6 @@ truststore==0.10.4
 urllib3_secure_extra==0.1.0
 Werkzeug==3.1.8
 websockets~=16.0
+numpy~=2.4.4
+tqdm~=4.67.3
+torch~=2.11.0
