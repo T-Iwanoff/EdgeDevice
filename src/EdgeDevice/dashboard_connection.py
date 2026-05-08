@@ -41,7 +41,7 @@ async def download_file(url, file_id, file_type, ws, controller):
 
         print(f"Download complete: {file_path}")
         if file_type == "program":
-            file_path.replace(DATA_DIR / "program" / "trainer.py")
+            file_path.replace(BASE_DIR / "src" / "EdgeDevice" / "program" / "trainer.py")
         else:
             await clear_old_files(path, file_id)
         await controller.update_status()

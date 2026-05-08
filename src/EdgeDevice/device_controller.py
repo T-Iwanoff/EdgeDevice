@@ -38,7 +38,7 @@ def check_missing_files():
 
 def reload_trainer():
     try:
-        from data.program import trainer
+        from src.EdgeDevice.program import trainer
         importlib.reload(trainer)
         return trainer
     except ImportError:
