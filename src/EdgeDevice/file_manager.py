@@ -1,10 +1,10 @@
 from pathlib import Path
 
 # Base data directory (shared convention with file manager)
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"
-MODEL_DIR = DATA_DIR / "model"
-TRAINING_DIR = DATA_DIR / "training_data"
-PROGRAM_DIR = DATA_DIR / "program"
+BASE_DIR = Path(__file__).resolve().parent[2]
+MODEL_DIR = BASE_DIR / "data" / "model"
+TRAINING_DIR = BASE_DIR / "data" / "training_data"
+PROGRAM_DIR = BASE_DIR / "src" / "EdgeDevice" / "program"
 DEVICE_PATH = Path("device.json")
 
 async def clear_old_files(path: Path, file_id: str):
